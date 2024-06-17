@@ -56,34 +56,6 @@ func (client *Client) handleRequest() {
 	}
 }
 
-type respType string
-
-const (
-	RESP_SIMPLE_STRING respType = "RESP_SIMPLE_STRING"
-	RESP_ERROR         respType = "RESP_ERROR"
-	RESP_INTEGER       respType = "RESP_INTEGER"
-	RESP_BULK_STRING   respType = "RESP_BULK_STRING"
-	RESP_ARRAYS        respType = "RESP_ARRAYS"
-)
-
-func GetType(s string) respType {
-	c := s[0]
-	switch c {
-	case '+':
-		return RESP_SIMPLE_STRING
-	case '-':
-		return RESP_ERROR
-	case ':':
-		return RESP_INTEGER
-	case '$':
-		return RESP_BULK_STRING
-	case '*':
-		return RESP_ARRAYS
-	default:
-		return ""
-	}
-}
-
 func main() {
 	server := New(&Config{
 		Host: "127.0.0.1",
