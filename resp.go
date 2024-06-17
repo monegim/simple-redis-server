@@ -17,7 +17,7 @@ const (
 func NewRESP(msg string) *RESP {
 	t := getType(msg)
 	return &RESP{
-		Message: msg[1:],
+		Message: msg,
 		Type:    t,
 	}
 }
@@ -51,6 +51,14 @@ func getType(s string) RespType {
 		return RESP_BULK_STRING
 	case '*':
 		return RESP_ARRAYS
+	default:
+		return ""
+	}
+}
+func (r *RESP) Command() string {
+	switch r.Message {
+	case "PING":
+		return "+PONG"
 	default:
 		return ""
 	}

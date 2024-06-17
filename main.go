@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"strconv"
+	"strings"
 )
 
 type Server struct {
@@ -43,6 +45,10 @@ func (s *Server) Run() {
 
 func (client *Client) handleRequest() {
 	reader := bufio.NewReader(client.conn)
+	var (
+		counter, numberOfElements int
+		inputCommand              string
+	)
 	for {
 		message, err := reader.ReadString('\n')
 		if err != nil {
@@ -50,9 +56,23 @@ func (client *Client) handleRequest() {
 			log.Println(err)
 			return
 		}
-		mesType := GetType(message)
-		fmt.Printf("message type: %s\n", mesType)
-		client.conn.Write([]byte(fmt.Sprintf("message incomming: %s", message)))
+		if strings.HasPrefix(message, "*") {
+			counter = 0
+			inputCommand = ""
+			lenMessage := len(message)
+			numberOfElements, err = strconv.Atoi(message[1 : lenMessage-2])
+			if err != nil {
+				log.Fatal(err)
+			}
+		} else if counter <= 2*numberOfElements {
+			inputCommand = inputCommand + message
+		}
+		counter++
+		//resp := NewRESP(message)
+		//responseCommand := resp.Command()
+		fmt.Printf("message: %s", message)
+		fmt.Printf("inputCommand: %s", inputCommand)
+		client.conn.Write([]byte("OK"))
 	}
 }
 
@@ -61,6 +81,6 @@ func main() {
 		Host: "127.0.0.1",
 		Port: "6379",
 	})
+	log.Printf("Starting server on %s:%s...\n", server.host, server.port)
 	server.Run()
-
 }
