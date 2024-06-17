@@ -44,14 +44,43 @@ func (s *Server) Run() {
 func (client *Client) handleRequest() {
 	reader := bufio.NewReader(client.conn)
 	for {
-		message, err := reader.ReadString(byte("\r\n"))
+		message, err := reader.ReadString('\n')
 		if err != nil {
 			client.conn.Close()
 			log.Println(err)
 			return
 		}
-		fmt.Printf("message incomming: %s", message)
+		mesType := GetType(message)
+		fmt.Printf("message type: %s\n", mesType)
 		client.conn.Write([]byte(fmt.Sprintf("message incomming: %s", message)))
+	}
+}
+
+type respType string
+
+const (
+	RESP_SIMPLE_STRING respType = "RESP_SIMPLE_STRING"
+	RESP_ERROR         respType = "RESP_ERROR"
+	RESP_INTEGER       respType = "RESP_INTEGER"
+	RESP_BULK_STRING   respType = "RESP_BULK_STRING"
+	RESP_ARRAYS        respType = "RESP_ARRAYS"
+)
+
+func GetType(s string) respType {
+	c := s[0]
+	switch c {
+	case '+':
+		return RESP_SIMPLE_STRING
+	case '-':
+		return RESP_ERROR
+	case ':':
+		return RESP_INTEGER
+	case '$':
+		return RESP_BULK_STRING
+	case '*':
+		return RESP_ARRAYS
+	default:
+		return ""
 	}
 }
 
