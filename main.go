@@ -78,6 +78,9 @@ func (client *Client) handleRequest() {
 	}
 }
 func ExecCommand(command []string) []byte {
+	if len(command) == 0 {
+		return []byte("$-1\r\n")
+	}
 	if len(command) == 1 && command[0] == "ping" {
 		return []byte("+PONG\r\n")
 	}
