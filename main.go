@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	"fmt"
 	"log"
 	"net"
 	"strconv"
@@ -47,10 +46,12 @@ func (client *Client) handleRequest() {
 	reader := bufio.NewReader(client.conn)
 	var (
 		counter, numberOfElements int
-		inputCommand              string
+		returnString              []byte
+		inputCommand              []string
 	)
 	for {
 		message, err := reader.ReadString('\n')
+		log.Println("message: ", message)
 		if err != nil {
 			client.conn.Close()
 			log.Println(err)
@@ -58,24 +59,33 @@ func (client *Client) handleRequest() {
 		}
 		if strings.HasPrefix(message, "*") {
 			counter = 0
-			inputCommand = ""
-			lenMessage := len(message)
-			numberOfElements, err = strconv.Atoi(message[1 : lenMessage-2])
+			numberOfElements, err = strconv.Atoi(strings.TrimSpace(message[1:]))
+			inputCommand = nil
 			if err != nil {
 				log.Fatal(err)
 			}
-		} else if counter <= 2*numberOfElements {
-			inputCommand = inputCommand + message
+		} else if counter <= 2*numberOfElements && counter%2 == 0 {
+			inputCommand = append(inputCommand, strings.TrimSpace(message))
 		}
 		counter++
-		//resp := NewRESP(message)
-		//responseCommand := resp.Command()
-		fmt.Printf("message: %s", message)
-		fmt.Printf("inputCommand: %s", inputCommand)
-		client.conn.Write([]byte("OK"))
+		//log.Println("counter:", counter)
+		if len(inputCommand) == numberOfElements {
+			returnString = ExecCommand(inputCommand)
+			log.Println("input command:", inputCommand)
+			log.Println("output:", string(returnString))
+			client.conn.Write(returnString)
+		}
 	}
 }
-
+func ExecCommand(command []string) []byte {
+	if len(command) == 1 {
+		if command[0] == "ping" {
+			return []byte("+PONG\r\n")
+		}
+	}
+	result := "+OK\r\n"
+	return []byte(result)
+}
 func main() {
 	server := New(&Config{
 		Host: "127.0.0.1",
