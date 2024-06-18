@@ -65,7 +65,7 @@ func (client *Client) handleRequest() {
 				log.Fatal(err)
 			}
 		} else if counter <= 2*numberOfElements && counter%2 == 0 {
-			inputCommand = append(inputCommand, strings.TrimSpace(message))
+			inputCommand = append(inputCommand, strings.TrimSuffix(message, "\r\n"))
 		}
 		counter++
 		//log.Println("counter:", counter)
@@ -83,6 +83,10 @@ func ExecCommand(command []string) []byte {
 	}
 	if len(command) == 1 && command[0] == "ping" {
 		return []byte("+PONG\r\n")
+	}
+	if command[0] == "echo" {
+		return []byte("+" + strings.Join(command[1:], " ") + "\r\n")
+		//return []byte("+mostafa\r\n")
 	}
 	result := "+OK\r\n"
 	return []byte(result)
