@@ -22,6 +22,11 @@ type Config struct {
 	Port string
 }
 
+type Commands []string
+
+func (c *Commands) Ping() []byte {
+	return []byte("+PONG\r\n")
+}
 func New(config *Config) *Server {
 	return &Server{host: config.Host, port: config.Port}
 }
@@ -47,7 +52,7 @@ func (client *Client) handleRequest() {
 	var (
 		counter, numberOfElements int
 		returnString              []byte
-		inputCommand              []string
+		commands                  Commands
 	)
 	for {
 		message, err := reader.ReadString('\n')
@@ -60,37 +65,47 @@ func (client *Client) handleRequest() {
 		if strings.HasPrefix(message, "*") {
 			counter = 0
 			numberOfElements, err = strconv.Atoi(strings.TrimSpace(message[1:]))
-			inputCommand = nil
+			commands.Clear()
 			if err != nil {
 				log.Fatal(err)
 			}
 		} else if counter <= 2*numberOfElements && counter%2 == 0 {
-			inputCommand = append(inputCommand, strings.TrimSuffix(message, "\r\n"))
+			commands.AddCommand(strings.TrimSuffix(message, "\r\n"))
+			//inputCommand = append(inputCommand, )
 		}
 		counter++
-		//log.Println("counter:", counter)
-		if len(inputCommand) == numberOfElements {
-			returnString = ExecCommand(inputCommand)
-			log.Println("input command:", inputCommand)
+		if commands.Length() == numberOfElements {
+			returnString = commands.ExecCommand()
+			log.Println("input command:", commands)
 			log.Println("output:", string(returnString))
 			client.conn.Write(returnString)
 		}
 	}
 }
-func ExecCommand(command []string) []byte {
-	if len(command) == 0 {
+func (c *Commands) Clear() {
+	*c = nil
+}
+func (c *Commands) AddCommand(command string) {
+	*c = append(*c, command)
+}
+func (c *Commands) Length() int {
+	return len(*c)
+}
+func (c *Commands) ExecCommand() []byte {
+	if c.Length() == 0 {
 		return []byte("$-1\r\n")
 	}
-	if len(command) == 1 && command[0] == "ping" {
-		return []byte("+PONG\r\n")
+	if c.Length() == 1 && (*c)[0] == "ping" {
+		return c.Ping()
 	}
-	if command[0] == "echo" {
-		return []byte("+" + strings.Join(command[1:], " ") + "\r\n")
+	if (*c)[0] == "echo" {
+		return []byte("+" + strings.Join((*c)[1:], " ") + "\r\n")
 		//return []byte("+mostafa\r\n")
 	}
 	result := "+OK\r\n"
 	return []byte(result)
 }
+
 func main() {
 	server := New(&Config{
 		Host: "127.0.0.1",
