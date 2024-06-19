@@ -95,6 +95,11 @@ func (c *Commands) Length() int {
 func (c *Commands) Nil() []byte {
 	return []byte("$-1\r\n")
 }
+
+func (c *Commands) Echo() []byte {
+	return []byte("+" + strings.Join((*c)[1:], " ") + "\r\n")
+}
+
 func (c *Commands) ExecCommand() []byte {
 	if c.Length() == 0 {
 		return c.Nil()
@@ -103,11 +108,9 @@ func (c *Commands) ExecCommand() []byte {
 		return c.Ping()
 	}
 	if (*c)[0] == "echo" {
-		return []byte("+" + strings.Join((*c)[1:], " ") + "\r\n")
-		//return []byte("+mostafa\r\n")
+		return c.Echo()
 	}
-	result := "+OK\r\n"
-	return []byte(result)
+	return c.Nil()
 }
 
 func main() {
