@@ -6,6 +6,7 @@ import (
 	"net"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type Server struct {
@@ -17,6 +18,13 @@ type Client struct {
 	conn net.Conn
 }
 
+type Store struct {
+	data map[string]Fields
+}
+type Fields struct {
+	Value  any
+	Expiry time.Time
+}
 type Config struct {
 	Host string
 	Port string
@@ -47,13 +55,16 @@ func (s *Server) Run() {
 	}
 }
 
+var (
+	err                       error
+	store                     = Store{data: map[string]Fields{}}
+	counter, numberOfElements int
+	returnString              []byte
+	commands                  Commands
+)
+
 func (client *Client) handleRequest() {
 	reader := bufio.NewReader(client.conn)
-	var (
-		counter, numberOfElements int
-		returnString              []byte
-		commands                  Commands
-	)
 	for {
 		message, err := reader.ReadString('\n')
 		log.Println("message: ", message)
@@ -100,6 +111,19 @@ func (c *Commands) Echo() []byte {
 	return []byte("+" + strings.Join((*c)[1:], " ") + "\r\n")
 }
 
+func (c *Commands) OK() []byte {
+	return []byte("+OK\r\n")
+}
+
+func (c *Commands) Set() error {
+	key := (*c)[1]
+	value := (*c)[2]
+	store.data[key] = Fields{
+		Value: value,
+	}
+	return nil
+}
+
 func (c *Commands) ExecCommand() []byte {
 	if c.Length() == 0 {
 		return c.Nil()
@@ -109,6 +133,14 @@ func (c *Commands) ExecCommand() []byte {
 	}
 	if (*c)[0] == "echo" {
 		return c.Echo()
+	}
+	if (*c)[0] == "set" {
+		err = c.Set()
+		if err != nil {
+			return []byte("-Notset\r\n")
+		}
+		log.Printf("sore: %#v", store)
+		return c.OK()
 	}
 	return c.Nil()
 }
