@@ -91,9 +91,13 @@ func (c *Commands) AddCommand(command string) {
 func (c *Commands) Length() int {
 	return len(*c)
 }
+
+func (c *Commands) Nil() []byte {
+	return []byte("$-1\r\n")
+}
 func (c *Commands) ExecCommand() []byte {
 	if c.Length() == 0 {
-		return []byte("$-1\r\n")
+		return c.Nil()
 	}
 	if c.Length() == 1 && (*c)[0] == "ping" {
 		return c.Ping()
