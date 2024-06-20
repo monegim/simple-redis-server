@@ -31,7 +31,18 @@ type Config struct {
 }
 
 type Commands []string
+type ServerResponse []byte
 
+func ToClient(s string, t RespType) []byte {
+	switch t {
+	case RESP_SIMPLE_STRING:
+		return []byte("+" + s + "\r\n")
+	case RESP_ERROR:
+		return []byte("-" + s + "\r\n")
+	default:
+		return []byte("$-1\r\n")
+	}
+}
 func (c *Commands) Ping() []byte {
 	return []byte("+PONG\r\n")
 }
@@ -116,6 +127,7 @@ func (c *Commands) OK() []byte {
 }
 
 func (c *Commands) Set() error {
+	//TODO: Support for EX, NX, XX
 	key := (*c)[1]
 	value := (*c)[2]
 	store.data[key] = Fields{
@@ -124,6 +136,14 @@ func (c *Commands) Set() error {
 	return nil
 }
 
+func (c *Commands) GET() ([]byte, error) {
+	key := (*c)[1]
+	value, ok := store.data[key]
+	if !ok {
+		return c.Nil(), nil
+	}
+	return ToClient(value.Value.(string), RESP_SIMPLE_STRING), nil
+}
 func (c *Commands) ExecCommand() []byte {
 	if c.Length() == 0 {
 		return c.Nil()
@@ -131,18 +151,26 @@ func (c *Commands) ExecCommand() []byte {
 	if c.Length() == 1 && (*c)[0] == "ping" {
 		return c.Ping()
 	}
-	if (*c)[0] == "echo" {
+	switch (*c)[0] {
+	case "echo":
 		return c.Echo()
-	}
-	if (*c)[0] == "set" {
+	case "set":
+
 		err = c.Set()
 		if err != nil {
 			return []byte("-Notset\r\n")
 		}
 		log.Printf("sore: %#v", store)
 		return c.OK()
+	case "get":
+		v, err := c.GET()
+		if err != nil {
+			return ToClient(err.Error(), RESP_ERROR)
+		}
+		return v
+	default:
+		return c.Nil()
 	}
-	return c.Nil()
 }
 
 func main() {
