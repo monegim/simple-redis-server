@@ -31,7 +31,7 @@ func (r *RESP) ToString() string {
 	case RESP_INTEGER:
 		return ":" + r.Message
 	case RESP_BULK_STRING:
-		return "*" + r.Message
+		return "$" + r.Message
 	case RESP_ARRAYS:
 		return "*" + r.Message
 	default:
